@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>凛冬专属 ✨</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --text: #f8fafc;
+            --accent: #38bdf8;
+            --accent-dark: #0ea5e9;
+            --shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            --modal-bg: rgba(15, 23, 42, 0.8);
+            --glass: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            --3d-depth: 0 8px 30px rgba(0, 0, 0, 0.12);
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            user-select: none;
+        }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow: hidden;
+            perspective: 1000px;
+        }
+        /* 粒子背景容器 */
+        #particle-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+        /* 加载动画 */
+        .loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: var(--transition);
+        }
+        .loader-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--glass);
+            border-top: 4px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        .loader-text {
+            font-size: 18px;
+            color: var(--text);
+            opacity: 0.8;
+        }
+        /* 新增：快手主页图片展示层 */
+        .profile-image-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 950;
+            opacity: 0;
+            visibility: hidden;
+            transition: var(--transition);
+        }
+        .profile-image-layer.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .profile-image {
+            max-width: 90%;
+            max-height: 90vh;
+            border-radius: 12px;
+            box-shadow: 0 0 30px rgba(56, 189, 248, 0.5);
+            transform: scale(0.9);
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .profile-image-layer.show .profile-image {
+            transform: scale(1);
+        }
+        .close-profile-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+        .close-profile-btn:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+        /* 确认弹窗 */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--modal-bg);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 900;
+            opacity: 0;
+            visibility: hidden;
+            transition: var(--transition);
+            transform: translateY(20px);
+        }
+        .modal.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .modal-content {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 30px 40px;
+            width: 90%;
+            max-width: 450px;
+            text-align: center;
+            box-shadow: var(--shadow);
+            transform: scale(0.95);
+            transition: var(--transition);
+        }
+        .modal.show .modal-content {
+            transform: scale(1);
+        }
+        .modal-title {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .modal-desc {
+            font-size: 18px;
+            margin-bottom: 30px;
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+        .confirm-btn {
+            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            border: none;
+            color: white;
+            padding: 12px 36px;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4);
+            transition: var(--transition);
+        }
+        .confirm-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(14, 165, 233, 0.6);
+        }
+        .confirm-btn:active {
+            transform: translateY(0);
+        }
+        /* 祝福弹窗（可拖拽） */
+        .popup {
+            position: absolute;
+            width: 280px;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--3d-depth);
+            backdrop-filter: blur(6px);
+            cursor: move;
+            z-index: 100;
+            transform-style: preserve-3d;
+            transition: box-shadow 0.3s ease;
+        }
+        .popup:hover {
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+        }
+        .popup-header {
+            padding: 12px 16px;
+            font-weight: 600;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .popup-close {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+        .popup-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        .popup-body {
+            padding: 16px;
+            font-size: 17px;
+            line-height: 1.5;
+        }
+        /* 音乐控制按钮 */
+        .music-control {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            border: none;
+            color: white;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow);
+            cursor: pointer;
+            z-index: 800;
+            transition: var(--transition);
+        }
+        .music-control:hover {
+            transform: scale(1.1) rotate(5deg);
+        }
+        .music-control.pause {
+            background: linear-gradient(135deg, #f43f5e, #e11d48);
+        }
+        /* 动画定义 */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* 弹窗入场动画（3D效果） */
+        @keyframes popInTop {
+            0% { transform: translate3d(0, -100px, -50px) scale(0.8); opacity: 0; }
+            100% { transform: translate3d(0, 0, 0) scale(1); opacity: 1; }
+        }
+        @keyframes popInBottom {
+            0% { transform: translate3d(0, 100px, -50px) scale(0.8); opacity: 0; }
+            100% { transform: translate3d(0, 0, 0) scale(1); opacity: 1; }
+        }
+        @keyframes popInLeft {
+            0% { transform: translate3d(-100px, 0, -50px) scale(0.8); opacity: 0; }
+            100% { transform: translate3d(0, 0, 0) scale(1); opacity: 1; }
+        }
+        @keyframes popInRight {
+            0% { transform: translate3d(100px, 0, -50px) scale(0.8); opacity: 0; }
+            100% { transform: translate3d(0, 0, 0) scale(1); opacity: 1; }
+        }
+        @keyframes popInTopLeft {
+            0% { transform: translate3d(-100px, -100px, -50px) scale(0.8); opacity: 0; }
+            100% { transform: translate3d(0, 0, 0) scale(1); opacity: 1; }
+        }
+        @keyframes popInTopRight {
+            0% { transform: translate3d(100px, -100px, -50px) scale(0.8); opacity: 0; }
+            100% { transform: translate3d(0, 0, 0) scale(1); opacity: 1; }
+        }
+        @keyframes popInBottomLeft {
+            0% { transform: translate3d(-100px, 100px, -50px) scale(0.8); opacity: 0; }
+            100% { transform: translate3d(0, 0, 0) scale(1); opacity: 1; }
+        }
+        @keyframes popInBottomRight {
+            0% { transform: translate3d(100px, 100px, -50px) scale(0.8); opacity: 0; }
+            100% { transform: translate3d(0, 0, 0) scale(1); opacity: 1; }
+        }
+        /* 响应式适配 */
+        @media (max-width: 640px) {
+            .popup {
+                width: 85vw;
+            }
+            .modal-content {
+                padding: 20px 25px;
+            }
+            .modal-title {
+                font-size: 20px;
+            }
+            .modal-desc {
+                font-size: 16px;
+            }
+            .music-control {
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+                bottom: 20px;
+                right: 20px;
+            }
+            .close-profile-btn {
+                width: 35px;
+                height: 35px;
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 粒子背景 -->
+    <div id="particle-container"></div>
+    <!-- 加载动画 -->
+    <div class="loader" id="loader">
+        <div class="loader-spinner"></div>
+        <div class="loader-text">加载中...</div>
+    </div>
+    <!-- 新增：快手主页图片展示层 -->
+    <div class="profile-image-layer" id="profileLayer">
+        <button class="close-profile-btn" id="closeProfileBtn">×</button>
+        <!-- 已替换为可用JPG链接，亲测可访问 -->
+        <img src="https://www.cccimg.com/view.php/79cb0c49fb770f6710abfa7a85e1dc89.jpg" alt="快手主页" class="profile-image">
+    </div>
+    <!-- 确认弹窗 -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <h2 class="modal-title">💝 您有一份特殊的礼物</h2>
+            <p class="modal-desc">点击确认拆开，准备好接收这份专属惊喜了吗？</p>
+            <button class="confirm-btn" id="confirmBtn">确认</button>
+        </div>
+    </div>
+    <!-- 音乐控制按钮 -->
+    <button class="music-control" id="musicControl">🎵</button>
+    <!-- 音频元素：已替换为第一个HTML的抖音音频链接 -->
+    <audio id="bgMusic" preload="auto" loop>
+        <source src="https://sf5-hl-cdn-tos.douyinstatic.com/obj/ies-music/7499771397531503370.mp3" type="audio/mpeg">
+    </audio>
+    <script>
+        // 核心元素获取
+        const loader = document.getElementById('loader');
+        const profileLayer = document.getElementById('profileLayer');
+        const closeProfileBtn = document.getElementById('closeProfileBtn');
+        const modal = document.getElementById('modal');
+        const confirmBtn = document.getElementById('confirmBtn');
+        const bgMusic = document.getElementById('bgMusic');
+        const musicControl = document.getElementById('musicControl');
+        const particleContainer = document.getElementById('particle-container');
+        const body = document.body;
+        // 配置项
+        const config = {
+            popupMax: 50,          // 最大弹窗数量
+            popupInterval: 120,    // 弹窗生成间隔(ms)
+            particleCount: 80,     // 粒子数量
+            themes: [              // 弹窗主题色（渐变色）
+                { header: '#38bdf8', body: 'rgba(56, 189, 248, 0.1)' },
+                { header: '#8b5cf6', body: 'rgba(139, 92, 246, 0.1)' },
+                { header: '#ec4899', body: 'rgba(236, 72, 153, 0.1)' },
+                { header: '#10b981', body: 'rgba(16, 185, 129, 0.1)' },
+                { header: '#f59e0b', body: 'rgba(245, 158, 11, 0.1)' },
+                { header: '#ef4444', body: 'rgba(239, 68, 68, 0.1)' },
+                { header: '#6366f1', body: 'rgba(99, 102, 241, 0.1)' },
+                { header: '#14b8a6', body: 'rgba(20, 184, 166, 0.1)' },
+                { header: '#f43f5e', body: 'rgba(244, 63, 94, 0.1)' }
+            ],
+            animations: [          // 弹窗入场动画
+                'popInTop', 'popInBottom', 'popInLeft', 'popInRight',
+                'popInTopLeft', 'popInTopRight', 'popInBottomLeft', 'popInBottomRight'
+            ],
+            blessings: [           // 祝福文案库（多段内容）
+                '愿你岁岁年年，平安喜乐 ✨',
+                '日子滚烫，我们来日方长 🥳',
+                '生活甜甜，好运连连 🍬',
+                '万事顺意，一路生花 🌸',
+                '保持热爱，奔赴山海 🌊',
+                '平安喜乐，得偿所愿 🎈',
+                '有趣有盼，不负心中热爱 💖',
+                '前路浩浩荡荡，万事尽可期待 🚀',
+                '把烦恼丢掉，把快乐装进口袋 🎒',
+                '愿你眼里有光，心中有爱，一路春暖花开 🌷'
+            ]
+        };
+        // 已生成的弹窗列表
+        let popups = [];
+        // 音乐播放状态（初始化为false，避免重复判断错误）
+        let isMusicPlaying = false;
+        // 1. 初始化粒子背景
+        function initParticles() {
+            for (let i = 0; i < config.particleCount; i++) {
+                const particle = document.createElement('div');
+                // 随机样式
+                const size = Math.random() * 6 + 2;
+                const color = `rgba(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 0.6 + 0.2})`;
+                
+                particle.style.cssText = `
+                    position: absolute;
+                    width: ${size}px;
+                    height: ${size}px;
+                    background: ${color};
+                    border-radius: 50%;
+                    top: ${Math.random() * 100}%;
+                    left: ${Math.random() * 100}%;
+                    opacity: ${Math.random() * 0.8 + 0.2};
+                    pointer-events: none;
+                    transition: transform 0.1s ease;
+                `;
+                particleContainer.appendChild(particle);
+                // 粒子动画
+                animateParticle(particle);
+            }
+            // 鼠标移动时粒子跟随（视差效果）
+            document.addEventListener('mousemove', (e) => {
+                const x = e.clientX / window.innerWidth - 0.5;
+                const y = e.clientY / window.innerHeight - 0.5;
+                
+                document.querySelectorAll('#particle-container > div').forEach(particle => {
+                    const depth = parseFloat(particle.style.width) * 0.8;
+                    particle.style.transform = `translate3d(${x * depth}px, ${y * depth}px, 0)`;
+                });
+            });
+        }
+        // 粒子动画（漂浮+旋转）
+        function animateParticle(particle) {
+            const duration = Math.random() * 20 + 10;
+            const startX = parseFloat(particle.style.left);
+            const startY = parseFloat(particle.style.top);
+            
+            // 随机移动路径
+            const keyframes = [
+                { transform: `translate(0, 0) rotate(0deg)`, opacity: particle.style.opacity },
+                { transform: `translate(${Math.random() * 40 - 20}px, ${Math.random() * -80 - 40}px) rotate(${Math.random() * 360}deg)`, opacity: 0 }
+            ];
+            particle.animate(keyframes, {
+                duration: duration * 1000,
+                iterations: Infinity,
+                easing: 'cubic-bezier(0.4, 0, 0.2, 1)'
+            });
+            // 重置位置
+            setTimeout(() => {
+                particle.style.top = '100%';
+                particle.style.left = `${Math.random() * 100}%`;
+            }, duration * 1000 - 500);
+        }
+        // 2. 创建祝福弹窗（支持拖拽）
+        function createPopup() {
+            // 限制最大数量
+            if (popups.length >= config.popupMax) {
+                removePopup(popups[0]);
+            }
+            // 随机选择配置
+            const theme = config.themes[Math.floor(Math.random() * config.themes.length)];
+            const animation = config.animations[Math.floor(Math.random() * config.animations.length)];
+            const blessing = config.blessings[Math.floor(Math.random() * config.blessings.length)];
+            // 创建弹窗元素
+            const popup = document.createElement('div');
+            popup.className = 'popup';
+            popup.style.animation = `${animation} 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards`;
+            
+            // 设置主题色
+            popup.innerHTML = `
+                <div class="popup-header" style="background: ${theme.header}">
+                    <span>提示 💝</span>
+                    <button class="popup-close">×</button>
+                </div>
+                <div class="popup-body" style="background: ${theme.body}; color: var(--text)">
+                    ${blessing}
+                </div>
+            `;
+            // 随机位置（避免超出屏幕）
+            const maxX = window.innerWidth - popup.offsetWidth - 20;
+            const maxY = window.innerHeight - popup.offsetHeight - 20;
+            const posX = Math.random() * maxX + 10;
+            const posY = Math.random() * maxY + 10;
+            
+            popup.style.left = `${posX}px`;
+            popup.style.top = `${posY}px`;
+            // 添加到页面
+            document.body.appendChild(popup);
+            popups.push(popup);
+            // 绑定关闭按钮
+            const closeBtn = popup.querySelector('.popup-close');
+            closeBtn.addEventListener('click', () => removePopup(popup));
+            // 绑定拖拽功能
+            makeDraggable(popup);
+        }
+        // 弹窗拖拽功能
+        function makeDraggable(element) {
+            let isDragging = false;
+            let offsetX, offsetY;
+            element.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                // 提升层级
+                element.style.zIndex = 200;
+                // 计算偏移量
+                offsetX = e.clientX - element.getBoundingClientRect().left;
+                offsetY = e.clientY - element.getBoundingClientRect().top;
+                // 鼠标样式
+                element.style.cursor = 'grabbing';
+                // 3D抬起效果
+                element.style.transform = 'translate3d(0, 0, 10px) scale(1.02)';
+            });
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                
+                // 计算新位置
+                let x = e.clientX - offsetX;
+                let y = e.clientY - offsetY;
+                // 边界限制
+                x = Math.max(0, Math.min(x, window.innerWidth - element.offsetWidth));
+                y = Math.max(0, Math.min(y, window.innerHeight - element.offsetHeight));
+                element.style.left = `${x}px`;
+                element.style.top = `${y}px`;
+            });
+            document.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    element.style.cursor = 'move';
+                    element.style.zIndex = 100;
+                    element.style.transform = 'translate3d(0, 0, 0) scale(1)';
+                }
+            });
+        }
+        // 移除弹窗
+        function removePopup(popup) {
+            // 退场动画
+            popup.style.opacity = 0;
+            popup.style.transform = 'scale(0.8) translate3d(0, 0, -20px)';
+            popup.style.transition = 'all 0.3s ease';
+            setTimeout(() => {
+                popup.remove();
+                // 从列表中删除
+                popups = popups.filter(p => p !== popup);
+            }, 300);
+        }
+        // 3. 音乐控制（核心修复：拆分播放/暂停逻辑，避免重复触发）
+        // 单独播放音乐函数
+        function playMusic() {
+            if (isMusicPlaying) return; // 已播放则直接返回，不重复操作
+            const playPromise = bgMusic.play();
+            if (playPromise) {
+                playPromise.then(() => {
+                    updateMusicState(true);
+                }).catch(() => {
+                    alert('请点击页面任意位置后重试，即可播放音乐～');
+                    body.addEventListener('click', handleFirstClickPlay, { once: true });
+                });
+            }
+        }
+        // 单独暂停音乐函数
+        function pauseMusic() {
+            if (!isMusicPlaying) return; // 已暂停则直接返回
+            bgMusic.pause();
+            updateMusicState(false);
+        }
+        // 音乐控制按钮切换（保留原交互）
+        musicControl.addEventListener('click', () => {
+            isMusicPlaying ? pauseMusic() : playMusic();
+        });
+        // 更新音乐播放状态
+        function updateMusicState(playing) {
+            isMusicPlaying = playing;
+            musicControl.textContent = playing ? '⏸️' : '🎵';
+            musicControl.classList.toggle('pause', !playing);
+        }
+        // 首次点击页面触发音乐播放（兼容浏览器限制）
+        function handleFirstClickPlay() {
+            bgMusic.play().then(() => {
+                updateMusicState(true);
+            }).catch(() => {
+                alert('音乐播放需要您允许音频权限，可检查浏览器设置～');
+            });
+        }
+        // 4. 页面初始化流程（修复确认按钮音乐逻辑）
+        function init() {
+            // 初始化粒子背景
+            initParticles();
+            // 提前绑定页面点击事件：确保首次交互可触发音乐
+            body.addEventListener('click', handleFirstClickPlay, { once: true });
+            // 加载完成后先显示快手图片，再显示礼物弹窗
+            setTimeout(() => {
+                loader.style.opacity = 0;
+                setTimeout(() => {
+                    loader.style.display = 'none';
+                    // 显示快手主页图片
+                    profileLayer.classList.add('show');
+                }, 500);
+            }, 1500);
+            // 关闭图片层，显示礼物确认弹窗 + 尝试播放音乐
+            closeProfileBtn.addEventListener('click', () => {
+                profileLayer.classList.remove('show');
+                setTimeout(() => {
+                    modal.classList.add('show');
+                    playMusic(); // 仅播放，不切换状态
+                }, 300);
+            });
+            // 确认按钮点击事件（核心修复：只隐藏弹窗+生成祝福，不触发音乐切换）
+            confirmBtn.addEventListener('click', () => {
+                modal.classList.remove('show');
+                // 开始生成弹窗（音乐保持原播放状态，不重复控制）
+                setInterval(createPopup, config.popupInterval);
+            });
+            // 窗口大小变化时调整弹窗位置
+            window.addEventListener('resize', () => {
+                popups.forEach(popup => {
+                    const x = parseFloat(popup.style.left);
+                    const y = parseFloat(popup.style.top);
+                    const maxX = window.innerWidth - popup.offsetWidth - 20;
+                    const maxY = window.innerHeight - popup.offsetHeight - 20;
+                    
+                    popup.style.left = `${Math.min(x, maxX)}px`;
+                    popup.style.top = `${Math.min(y, maxY)}px`;
+                });
+            });
+        }
+        // 启动初始化
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
